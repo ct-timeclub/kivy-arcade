@@ -20,13 +20,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Paquetes que pide la documentación oficial de buildozer para Ubuntu 24.04.
+      # Paquetes que pide la documentación oficial de buildozer para Ubuntu 24.04, MÁS
+      # libltdl-dev y libtool-bin: sin ellos, la receta de libffi falla en autoreconf con
+      # "possibly undefined macro: LT_SYS_SYMBOL_USCORE" (error visto en la primera ejecución).
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip \
-            autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev \
-            libtinfo6 cmake libffi-dev libssl-dev automake autopoint gettext
+            autoconf libtool libtool-bin libltdl-dev pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
+            automake autopoint gettext
 
       # Cython 0.29.x: la mayoría de recetas de python-for-android no soportan Cython 3.
       - name: Instalar buildozer
