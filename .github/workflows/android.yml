@@ -15,7 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # python-for-android (la herramienta que empaqueta) es estable con Python <= 3.12.
+      # Python del RUNNER (para ejecutar buildozer). El Python que se empaqueta en la app
+      # (3.11.5) lo fija p4a.branch en buildozer.spec; son cosas distintas.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

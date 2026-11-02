@@ -123,8 +123,12 @@ No está incluido hoy porque requiere esas credenciales.
 
 ## 5. Notas técnicas
 
-- **Python:** Kivy 2.3.1 funciona con Python 3.8-3.13. Los workflows usan Python 3.11 porque
-  `python-for-android` es estable hasta 3.12.
+- **Python:** Kivy 2.3.1 funciona con Python 3.8-3.13 (no con 3.14).
+- **Python en Android:** python-for-android (la herramienta que empaqueta) pasó a compilar
+  Python 3.14 en su rama `master`, y Kivy 2.3.x no lo soporta: el build fallaba al instalar Kivy.
+  Por eso `buildozer.spec` fija `p4a.branch = v2024.01.21` (Python 3.11.5, Kivy 2.3.0, NDK 25b,
+  API 33). En el PC se usa Kivy 2.3.1; el código es el mismo. Cuando Kivy soporte Python 3.14,
+  se podrá actualizar esa línea.
 - **Dependencias en móvil:** solo funcionan las librerías puras de Python o las que tienen
   «receta» en `python-for-android` / `kivy-ios`. Antes de usar una librería nueva, hay que
   comprobar que exista su receta.
