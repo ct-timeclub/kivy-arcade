@@ -1,0 +1,54 @@
+name: Build Android (APK)
+
+# Se ejecuta al subir a main y cuando lo pidas a mano (pestaña Actions -> Run workflow).
+# La primera vez tarda ~25-40 minutos (descarga el SDK y el NDK de Android);
+# con la caché, las siguientes tardan bastante menos.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      # python-for-android (la herramienta que empaqueta) es estable con Python <= 3.12.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Paquetes que pide la documentación oficial de buildozer para Ubuntu 24.04.
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip \
+            autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo6 cmake libffi-dev libssl-dev automake autopoint gettext
+
+      # Cython 0.29.x: la mayoría de recetas de python-for-android no soportan Cython 3.
+      - name: Instalar buildozer
+        run: python -m pip install buildozer setuptools cython==0.29.34
+
+      # Guarda lo descargado (SDK, NDK, dependencias compiladas) entre ejecuciones.
+      - name: Caché de buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec', 'requirements.txt') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
+
+      - name: Compilar APK (debug)
+        run: buildozer -v android debug
+
+      - name: Subir el APK como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: kivy-arcade-apk
+          path: bin/*.apk
+          if-no-files-found: error

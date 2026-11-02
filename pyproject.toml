@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".buildozer", "bin", "ios-toolchain"]
+
+[tool.ruff.lint]
+# E/F: errores comunes y variables o imports sin usar. W: espacios sobrantes.
+select = ["E", "F", "W"]

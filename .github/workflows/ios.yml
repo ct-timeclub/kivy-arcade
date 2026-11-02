@@ -1,0 +1,104 @@
+name: Build iOS (sin firmar)
+
+# ⚠️  SOLO SE EJECUTA A MANO (Actions -> "Build iOS" -> Run workflow) o al crear una etiqueta v*.
+# Motivo: los runners de macOS son lentos y, en repositorios PRIVADOS, cada minuto de macOS
+# se cuenta x10 contra la cuota gratuita (un build de 40 min = 400 min de cuota).
+# En repositorios públicos es gratis.
+#
+# Qué produce (sin certificados de Apple):
+#   * Kivy-Arcade-simulator.zip : app para el Simulador de iOS (hace falta un Mac con Xcode).
+#   * Kivy-Arcade-unsigned.ipa  : IPA sin firmar. Para instalarla en un iPhone real hay que
+#                                 firmarla (cuenta de Apple Developer, o herramientas como
+#                                 Sideloadly/AltStore con un Apple ID). Ver docs/PRUEBAS_Y_BUILDS.md.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  ios:
+    runs-on: macos-14
+    timeout-minutes: 120
+    env:
+      APP_TITLE: Arcade
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Herramientas que pide el README de kivy-ios.
+      - name: Instalar herramientas de compilación
+        run: |
+          brew install autoconf automake libtool pkg-config
+          brew link libtool || true
+
+      - name: Instalar kivy-ios
+        run: python -m pip install kivy-ios
+
+      - name: Crear carpeta de trabajo de la toolchain
+        run: mkdir -p ios-toolchain
+
+      # kivy-ios compila Python y Kivy para iOS DENTRO de la carpeta donde se ejecuta
+      # (crea build/ y dist/). Esto es lo más lento, por eso se guarda en caché.
+      - name: Caché de la toolchain de kivy-ios
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios-toolchain/build
+            ios-toolchain/dist
+          key: kivy-ios-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            kivy-ios-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Compilar Python y Kivy para iOS (dispositivo + simulador)
+        working-directory: ios-toolchain
+        run: toolchain build python3 kivy
+
+      - name: Preparar carpeta de la app
+        run: |
+          mkdir -p ios-toolchain/app
+          rsync -a \
+            --exclude '.git' --exclude '.github' --exclude 'tests' --exclude 'docs' \
+            --exclude 'ios-toolchain' --exclude '.buildozer' --exclude 'bin' \
+            --exclude '.venv' --exclude 'games/_template' \
+            ./ ios-toolchain/app/
+
+      - name: Crear el proyecto de Xcode
+        working-directory: ios-toolchain
+        run: toolchain create "$APP_TITLE" "$PWD/app"
+
+      - name: Compilar para el simulador
+        working-directory: ios-toolchain
+        run: |
+          PROJ=$(find . -maxdepth 2 -name '*.xcodeproj' | head -1)
+          SCHEME=$(basename "$PROJ" .xcodeproj)
+          echo "Proyecto: $PROJ  Esquema: $SCHEME"
+          xcodebuild -project "$PROJ" -scheme "$SCHEME" -configuration Debug \
+            -sdk iphonesimulator -derivedDataPath build/xcode-sim \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Compilar para iPhone (sin firmar) y empaquetar .ipa
+        working-directory: ios-toolchain
+        run: |
+          PROJ=$(find . -maxdepth 2 -name '*.xcodeproj' | head -1)
+          SCHEME=$(basename "$PROJ" .xcodeproj)
+          xcodebuild -project "$PROJ" -scheme "$SCHEME" -configuration Release \
+            -sdk iphoneos -derivedDataPath build/xcode-device \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          APP=$(find build/xcode-device/Build/Products -maxdepth 2 -name '*.app' | head -1)
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          (cd out && zip -qr Kivy-Arcade-unsigned.ipa Payload)
+          SIM=$(find build/xcode-sim/Build/Products -maxdepth 2 -name '*.app' | head -1)
+          ditto -c -k --sequesterRsrc --keepParent "$SIM" out/Kivy-Arcade-simulator.zip
+
+      - name: Subir resultados
+        uses: actions/upload-artifact@v4
+        with:
+          name: kivy-arcade-ios
+          path: |
+            ios-toolchain/out/Kivy-Arcade-unsigned.ipa
+            ios-toolchain/out/Kivy-Arcade-simulator.zip
+          if-no-files-found: error

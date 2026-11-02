@@ -1,0 +1,21 @@
+# Entornos virtuales y cachés de Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Builds de Android (buildozer) e iOS (kivy-ios)
+.buildozer/
+bin/
+ios-toolchain/
+*.apk
+*.aab
+*.ipa
+
+# Datos locales de Kivy y del sistema
+.kivy/
+.DS_Store
+Thumbs.db
+*.log

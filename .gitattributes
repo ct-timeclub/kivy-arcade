@@ -1,0 +1,6 @@
+# Fuerza finales de línea LF en el repositorio (Windows, Linux y macOS por igual).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.apk binary
+*.ipa binary
