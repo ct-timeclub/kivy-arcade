@@ -1,34 +1,34 @@
-# Flappy Bird
+# Flappy Bird (versión terminada)
 
-**Alumno:** por asignar  ·  **Rama:** `juego/flappy`  ·  **Probar solo:** `python run_game.py flappy`
+`python run_game.py flappy`
 
-Un pájaro que cae por gravedad; cada toque lo hace saltar. Hay que pasar entre tubos.
-Lee primero `games/_template/game.py` y `docs/GUIA_ALUMNO.md`.
+Toca para aletear y pasa entre los tubos. Cada 1 punto el juego se acelera un poco y el hueco
+se cierra, hasta un límite.
 
-## Hitos sugeridos (de menos a más difícil)
+## Archivos
 
-1. **El pájaro cae.** Dibuja un cuadrado o círculo (canvas) y súbele la velocidad vertical con la
-   gravedad en `update(dt)`: `vy -= GRAVEDAD * dt` y `y += vy * dt`.
-2. **Salta al tocar.** En `on_touch_down`, pon `vy` en un valor positivo (impulso).
-3. **Pierde al tocar el suelo o el techo** → `self.game_over()`.
-4. **Un tubo que se mueve.** Dos rectángulos (arriba y abajo) con un hueco, que avanzan hacia la
-   izquierda `x -= velocidad * dt`.
-5. **Colisión.** Comprueba si el rectángulo del pájaro se solapa con los de los tubos.
-6. **Puntuación.** Suma `self.add_score()` cuando el pájaro pasa un tubo.
-7. **Varios tubos.** Crea tubos nuevos a cierta distancia y elimina los que salen de la pantalla.
-8. **Dificultad.** Hueco más pequeño o tubos más rápidos conforme sube el puntaje.
+| Archivo | Qué contiene |
+|---|---|
+| `game.py` | Toda la lógica: fases, física, tubos, colisiones, dibujo del pájaro |
+| `art.py` | Texturas generadas por código: tubos, suelo y ciudad lejana |
+| `__init__.py` | Los datos del juego (`GAME`) |
 
-## Conceptos de Kivy que vas a usar
+## Cómo funciona
 
-`canvas` (`Color`, `Rectangle`, `Ellipse`), `update(dt)`, `on_touch_down`, colisiones entre
-rectángulos, listas de objetos, `random`.
+- **Tres fases propias**: `ready` (el pájaro flota esperando el primer toque), `play` y `dead`
+  (cae girando y, al llegar al suelo, se llama a `game_over()`).
+- **Unidades relativas**: todas las medidas están en «unidades» (`u = alto / 640`), así el juego es
+  igual en pantallas distintas.
+- **Física**: `vy -= GRAVITY * dt` y `y += vy * dt`; aletear fija `vy` hacia arriba.
+- **Tubos**: 4 pares que se reciclan al salir por la izquierda. La altura del hueco cambia como
+  máximo ±190 unidades respecto al anterior para que nunca sea imposible.
+- **Parallax**: el suelo y la ciudad son texturas que se repiten; moverlas es cambiar `tex_coords`.
+- **Pájaro**: elipses dentro de un `Translate` + `Rotate` + `Scale`; se inclina según su velocidad.
 
-## Ideas extra
+## Retos para mejorarlo
 
-Imagen del pájaro con `self.asset("bird.png")`, animación de aleteo, fondo con parallax,
-medallas por puntaje.
-
-## Para que encaje en la app
-
-Cambia `PlaceholderGame` por `GameScreen` en `game.py` cuando empieces. Antes de entregar,
-revisa la lista de verificación de `docs/GUIA_ALUMNO.md`.
+1. Añade **medallas** (bronce a los 10, plata a los 20, oro a los 30) en la pantalla de fin.
+2. Cambia de día a noche cada 10 puntos (otro degradado en `vertical_gradient`).
+3. Haz que aparezcan **monedas** en el hueco de algunos tubos.
+4. Prueba tubos que **se mueven** arriba y abajo después de 15 puntos.
+5. Cambia las constantes (`GRAVITY`, `FLAP_SPEED`, `GAP_START`) y observa cómo cambia la sensación.

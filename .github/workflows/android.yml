@@ -1,11 +1,11 @@
 name: Build Android (APK)
 
-# Se ejecuta al subir a main y cuando lo pidas a mano (pestaña Actions -> Run workflow).
+# Se ejecuta al subir a main o a una rama demo/**, y cuando lo pidas a mano (pestaña Actions -> Run workflow).
 # La primera vez tarda ~25-40 minutos (descarga el SDK y el NDK de Android);
 # con la caché, las siguientes tardan bastante menos.
 on:
   push:
-    branches: [main]
+    branches: [main, "demo/**"]
   workflow_dispatch:
 
 jobs:

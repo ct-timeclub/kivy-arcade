@@ -40,8 +40,8 @@ android.accept_sdk_license = True
 # arm64-v8a: móviles actuales. x86_64: emulador de Android Studio en un PC con Intel/AMD.
 # Cada arquitectura añade tiempo de compilación; quita x86_64 si no usas emulador.
 android.archs = arm64-v8a, x86_64
-# Esta app no necesita permisos especiales (ni internet).
-android.permissions =
+# VIBRATE: para que los juegos hagan vibrar el teléfono al chocar (Ajustes -> Vibración).
+android.permissions = VIBRATE
 android.allow_backup = True
 
 # Versiones que exige la versión de python-for-android fijada arriba (NDK 25b, API 33).

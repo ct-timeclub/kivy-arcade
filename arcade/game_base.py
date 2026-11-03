@@ -28,11 +28,19 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.metrics import dp
-from kivy.properties import ColorProperty, NumericProperty, OptionProperty, StringProperty
+from kivy.properties import (
+    BooleanProperty,
+    ColorProperty,
+    NumericProperty,
+    OptionProperty,
+    StringProperty,
+)
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
+from kivy.utils import platform
 
 from arcade import theme
+from arcade.sound import SoundBank
 from arcade.widgets import RoundedButton
 
 # Minúsculas, números y guion bajo. (Puede empezar con _ porque la plantilla se llama «_template».)
@@ -81,6 +89,7 @@ class GameHUD(FloatLayout):
 
     score = NumericProperty(0)
     best = NumericProperty(0)
+    show_score = BooleanProperty(True)   # False si el juego dibuja su propio marcador
     __events__ = ("on_pause_pressed",)
 
     def on_pause_pressed(self):
@@ -153,6 +162,9 @@ class GameScreen(Screen):
     # Evento que escucha la app para saber que el jugador quiere salir del juego.
     __events__ = ("on_exit_game",)
 
+    # Pon False si tu juego dibuja su propio marcador de puntos y no quieres el número del HUD.
+    hud_score = True
+
     # Ticks por segundo del bucle de juego.
     FPS = 60
     # Si un cuadro tarda más que esto (segundos), se recorta para evitar «saltos» enormes.
@@ -172,7 +184,7 @@ class GameScreen(Screen):
         self.bind(size=self._on_size_changed)
 
         self.layer = FloatLayout()
-        self.hud = GameHUD()
+        self.hud = GameHUD(show_score=self.hud_score)
         self.hud.bind(on_pause_pressed=lambda *_: self.pause())
         self.bind(score=self.hud.setter("score"), best=self.hud.setter("best"))
         self.add_widget(self.layer)
@@ -216,6 +228,27 @@ class GameScreen(Screen):
         module_file = sys.modules[type(self).__module__].__file__
         return str(Path(module_file).resolve().parent.joinpath("assets", *parts))
 
+    def play_sound(self, name):
+        """Reproduce un efecto de sonido (si el jugador no lo desactivó en Ajustes).
+
+        Nombres disponibles: ver arcade/sound.py (flap, point, hit, eat, jump, coin, win...).
+        """
+        if self.sound_enabled:
+            SoundBank.get().play(name)
+
+    def vibrate(self, milliseconds=40):
+        """Hace vibrar el teléfono un instante (solo Android, y si Vibración está activada)."""
+        if platform != "android" or not self.storage.get_setting("vibration", True):
+            return
+        try:
+            from jnius import autoclass
+
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            context = autoclass("android.content.Context")
+            activity.getSystemService(context.VIBRATOR_SERVICE).vibrate(int(milliseconds))
+        except Exception:  # noqa: BLE001 - vibrar es un extra: si falla, no pasa nada
+            pass
+
     def touch_pos(self, touch):
         """Posición de un toque en las coordenadas del juego (0, 0 = esquina inferior izquierda).
 
@@ -252,6 +285,7 @@ class GameScreen(Screen):
     # ------------------------------------------------------------------ control de la partida
     def start_game(self):
         """Empieza una partida desde cero."""
+        SoundBank.get().warm_up()
         self._close_overlay()
         self._stop_loop()
         self.score = 0
@@ -422,15 +456,21 @@ Builder.load_string(
             on_release: root.dispatch("on_pause_pressed")
         Label:
             text: str(int(root.score))
+            opacity: 1 if root.show_score else 0
             font_size: "30sp"
             bold: True
             color: theme.TEXT
+            outline_width: dp(2)
+            outline_color: 0.04, 0.05, 0.14, 0.95
         Label:
             text: "Mejor " + str(int(root.best))
             size_hint_x: None
             width: dp(96)
             font_size: "14sp"
-            color: theme.MUTED
+            bold: True
+            color: theme.TEXT
+            outline_width: dp(2)
+            outline_color: 0.04, 0.05, 0.14, 0.95
             halign: "right"
             valign: "middle"
             text_size: self.size

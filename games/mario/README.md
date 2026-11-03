@@ -1,43 +1,50 @@
-# Mario 2D (versión simple)
+# Mario 2D (versión terminada)
 
-**Alumno:** por asignar  ·  **Rama:** `juego/mario`  ·  **Probar solo:** `python run_game.py mario`
+`python run_game.py mario`
 
-Un juego de plataformas muy simplificado: el personaje corre, salta, esquiva o pisa enemigos y
-llega a la meta. Es el más largo de los tres: avanza por hitos y entrega funcionando en cada uno.
-Lee primero `games/_template/game.py` y `docs/GUIA_ALUMNO.md`.
+Juego de plataformas: corre, salta, junta monedas, golpea bloques, pisa enemigos y llega a la
+bandera. Tienes 3 vidas y un punto de control a mitad del nivel.
 
-## Hitos sugeridos (de menos a más difícil)
+**Puntos:** moneda 10 · enemigo pisado 25 · llegar a la meta 200 + 50 por cada vida que te sobre.
 
-1. **Personaje y suelo.** Un rectángulo para el personaje y una plataforma de suelo (otro rectángulo).
-2. **Gravedad.** `vy -= GRAVEDAD * dt`; al tocar el suelo, `vy = 0` y marca `en_suelo = True`.
-3. **Controles táctiles.** Botones en pantalla: izquierda, derecha y saltar (widgets en `self.layer`).
-   Solo puede saltar si está en el suelo.
-4. **Plataformas.** Varios rectángulos. La colisión de «aterrizar» solo cuenta si el personaje
-   **cae** y sus pies estaban por encima de la plataforma.
-5. **Cámara que sigue.** Un mundo más ancho que la pantalla: desplaza todo con un `offset_x`.
-6. **Monedas.** Rectángulos o círculos que, al tocarlos, hacen `add_score()` y desaparecen.
-7. **Enemigos.** Patrullan de lado a lado. Tocarlos de lado → `game_over()`; pisarlos desde arriba → los eliminas.
-8. **Meta y niveles.** Una bandera al final; al llegar, se suma una bonificación y empieza el siguiente nivel.
+## Archivos
 
-## Consejos
+| Archivo | Qué contiene |
+|---|---|
+| `game.py` | Física, controles, enemigos, cámara y dibujo |
+| `level.py` | El mapa del nivel, construido con funciones (`pipe`, `stairs`, `coin_line`) |
+| `sprites.py` | El arte de píxeles: personaje (4 poses), enemigo, azulejos y monedas |
+| `__init__.py` | Los datos del juego (`GAME`) |
 
-- **Deja un nivel simple primero.** Un solo nivel jugable vale más que mil ideas a medias.
-- Separa tu código en funciones pequeñas (`_mover_jugador`, `_colisiones`, `_mover_enemigos`).
-- Puedes dividir `game.py` en varios archivos dentro de tu carpeta (por ejemplo `player.py`,
-  `level.py`). Impórtalos con `from .player import Player`.
-- La app es vertical por ahora: diseña el nivel pensando en una pantalla estrecha.
+## Cómo funciona
 
-## Conceptos de Kivy que vas a usar
+- **Mapa de azulejos**: cada letra de `level.py` es un azulejo (`G` pasto, `B` ladrillo, `?` bloque
+  sorpresa...). `Level.is_solid(col, cy)` responde si se puede pisar.
+- **Colisiones en dos pasos**: primero se mueve en X y se corrige; después en Y. Así se sabe si
+  chocó de lado, con la cabeza (golpea el bloque) o con los pies (aterriza).
+- **Subpasos de 1/120 s**: la física se divide en pasos pequeños para que, al caer rápido, nada
+  atraviese el suelo.
+- **Sensación de salto**: altura variable (soltar el botón corta el salto), *coyote time* (se puede
+  saltar un instante después de dejar el borde) y *jump buffer* (se recuerda un toque adelantado).
+- **Cámara**: sigue al jugador con suavizado; el mundo se mueve con un `Translate`.
+- **Solo lo visible**: los azulejos están agrupados por columna y solo se dibujan las que caben en
+  pantalla.
+- **Arte de píxeles**: cada sprite es una lista de cadenas; ver `arcade/pixelart.py`.
+- **Estados**: `phase` es `play`, `dying`, `win_slide`, `win_walk` o `win_done`.
+- **Controles táctiles**: botones dibujados en el canvas; se siguen varios dedos a la vez con
+  `touch.uid` (puedes correr y saltar a la vez).
 
-`canvas`, listas de objetos, colisiones AABB (rectángulos), botones táctiles, `update(dt)`,
-desplazamiento de cámara, clases propias para jugador/enemigo/moneda.
+## Cambiar el nivel
 
-## Ideas extra
+Abre `level.py` y edita `build_level()`: agrega `pipe(col, alto)`, `stairs(col, [alturas])`,
+`coin_line(desde, hasta, altura)` o `enemies.append((col, altura))`. Después ejecuta
+`python -m pytest tests/test_mario.py`: la prueba `test_the_level_can_be_beaten` pone un bot a
+jugar y avisa si el nivel se volvió **imposible**.
 
-Sprites con `self.asset(...)`, animación de caminar (cambiar de imagen cada cierto tiempo),
-bloques con sorpresa, vidas.
+## Retos para mejorarlo
 
-## Para que encaje en la app
-
-Cambia `PlaceholderGame` por `GameScreen` en `game.py` cuando empieces. Antes de entregar,
-revisa la lista de verificación de `docs/GUIA_ALUMNO.md`.
+1. Un **hongo** en los bloques sorpresa que haga crecer al personaje.
+2. Un **segundo tipo de enemigo** (uno con caparazón o que vuela).
+3. Un **cronómetro** de 200 segundos con bonus por el tiempo que sobre.
+4. Un segundo **nivel** (crea `build_level_2()` y pasa al siguiente al llegar a la meta).
+5. **Moneda de 100** que da una vida extra.

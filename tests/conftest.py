@@ -11,6 +11,7 @@ from pathlib import Path
 
 os.environ["KIVY_NO_ARGS"] = "1"
 os.environ.setdefault("KIVY_NO_CONSOLELOG", "1")
+os.environ["ARCADE_NO_SOUND"] = "1"      # las pruebas no reproducen audio
 
 # Permite hacer `import arcade` y `import games` desde las pruebas.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

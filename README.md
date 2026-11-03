@@ -1,25 +1,51 @@
 # Kivy Arcade
 
 App móvil hecha con [Kivy](https://kivy.org) que funciona como una **sala de juegos**: un menú
-principal y, dentro, un juego programado por cada alumno. Se empaqueta para **Android** (APK) e
-**iOS** con GitHub Actions y se puede probar en el PC.
+principal y, dentro, tres juegos. Se empaqueta para **Android** (APK) e **iOS** con GitHub Actions
+y se puede probar en el PC.
 
-![Vista general de la app](docs/screenshots/overview.png)
+> ### 🎮 Esta es la rama `demo/completa`
+> Contiene los **tres juegos terminados** (Flappy Bird, Snake y Mario 2D). Sirve para mostrar el
+> resultado final y como solución de referencia del docente.
+>
+> La rama **`main`** tiene la misma app pero con los juegos como **esqueletos vacíos**: es el punto
+> de partida de los alumnos. Ver [docs/DEMO.md](docs/DEMO.md).
 
-## Cómo está pensada: modular
+![Los tres juegos](docs/screenshots/juegos.png)
+
+![El menú](docs/screenshots/overview.png)
+
+## Los juegos
+
+| Juego | Cómo se juega | Qué tiene |
+|---|---|---|
+| **Flappy Bird** | Toca la pantalla para aletear y pasa entre los tubos | Fondo con parallax (ciudad y nubes), pájaro animado que se inclina, dificultad progresiva, sacudida y partículas al chocar |
+| **Snake** | Desliza el dedo para girar y come manzanas | Movimiento suave, ojos que miran hacia donde va, manzana dorada temporal con anillo de tiempo, velocidad creciente |
+| **Mario 2D** | Botones ‹ › y salto en pantalla | Nivel de 124 azulejos con pozos, tuberías, escaleras, bloques sorpresa, 9 enemigos, 45 monedas, checkpoint, 3 vidas y bandera final |
+
+Todos tienen **sonidos** generados por código, **vibración** en Android al chocar, pausa, récords
+guardados y respetan los ajustes de sonido y vibración. En el PC también se juegan con el teclado
+(flechas / WASD / espacio). **No usan archivos de imagen ni de audio**: todo se dibuja y se sintetiza
+con código, lo que hace el empaquetado muy simple.
+
+## Cómo está organizado
 
 ```
 kivy-arcade/
 ├── main.py              ← arranca la app completa
 ├── run_game.py          ← arranca UN solo juego (para desarrollar)
-├── arcade/              ← la app (menús, ajustes, puntuaciones). La mantiene el docente.
+├── arcade/              ← la app: menús, ajustes, puntuaciones y utilidades comunes
+│   ├── game_base.py       GameScreen: bucle, pausa, fin de partida, récords, errores aislados
+│   ├── gfx.py             degradados y partículas
+│   ├── pixelart.py        sprites dibujados con letras -> texturas
+│   └── sound.py           efectos de sonido sintetizados
 ├── games/
-│   ├── _template/       ← plantilla: se copia para crear un juego nuevo
-│   ├── flappy/          ← Alumno 1
-│   ├── snake/           ← Alumno 2
-│   └── mario/           ← Alumno 3
-├── tests/               ← pruebas automáticas (corren en cada push)
-├── docs/                ← guías (alumno, docente, pruebas y builds)
+│   ├── _template/       ← plantilla mínima para crear un juego nuevo
+│   ├── flappy/          ← Flappy Bird (game.py + art.py)
+│   ├── snake/           ← Snake (game.py)
+│   └── mario/           ← Mario 2D (game.py + level.py + sprites.py)
+├── tests/               ← 50 pruebas automáticas (incluye bots que juegan los 3 juegos)
+├── docs/                ← guías (demo, alumno, docente, pruebas y builds)
 ├── buildozer.spec       ← configuración del APK de Android
 └── .github/workflows/   ← CI: pruebas, APK de Android, IPA de iOS
 ```
@@ -27,13 +53,10 @@ kivy-arcade/
 Las ideas clave:
 
 - **Un juego = una carpeta.** La app descubre sola todo lo que haya en `games/`. Añadir un juego
-  no obliga a editar ningún archivo compartido, así que **cada alumno trabaja en su carpeta y en su
-  rama sin pisarse con los demás**.
+  no obliga a editar ningún archivo compartido.
 - **Un contrato común.** Cada juego hereda de `GameScreen` y rellena unos pocos «ganchos»
-  (`build_game`, `new_game`, `update`). La clase base ya trae el bucle de juego, la pausa, la
-  pantalla de fin, la barra de puntuación y el guardado de récords.
-- **Un juego roto no rompe la app.** Si un juego falla al cargarse o mientras se juega, se muestra
-  el error en su propia pantalla y el resto sigue funcionando.
+  (`build_game`, `new_game`, `update`). La clase base trae todo lo demás.
+- **Un juego roto no rompe la app.** Si falla, el error se muestra en su propia pantalla.
 - **Se prueba solo.** `python run_game.py snake` abre únicamente ese juego.
 
 ## Empezar (Windows)
@@ -44,6 +67,7 @@ Las ideas clave:
 ```powershell
 git clone <URL-del-repositorio>
 cd kivy-arcade
+git switch demo/completa            # los juegos terminados
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-dev.txt
@@ -52,25 +76,30 @@ python -m pip install -r requirements-dev.txt
 | Quiero... | Comando |
 |---|---|
 | Ver la app completa | `python main.py` |
-| Probar un solo juego | `python run_game.py snake` |
+| Probar un solo juego | `python run_game.py mario` |
 | Ver cómo se vería en un iPhone 6 | `python main.py -m screen:phone_iphone_6,portrait,scale=.6` |
 | Correr las pruebas | `python -m pytest` |
 | Revisar el estilo del código | `python -m ruff check .` |
+
+## Descargar el APK
+
+En GitHub: pestaña **Actions** → **Build Android (APK)** → la última ejecución verde → **Artifacts**
+→ `kivy-arcade-apk`. Instálalo en el teléfono (ver [docs/PRUEBAS_Y_BUILDS.md](docs/PRUEBAS_Y_BUILDS.md)).
 
 ## Documentación
 
 | Para quién | Documento |
 |---|---|
+| Todos | [La demo: qué es y cómo se relaciona con `main`](docs/DEMO.md) |
 | Alumnos | [Guía del alumno](docs/GUIA_ALUMNO.md): crear y probar tu juego, trabajo con git |
 | Docente | [Guía del docente](docs/GUIA_DOCENTE.md): repositorio, colaboradores, ramas, revisión |
 | Todos | [Pruebas y builds](docs/PRUEBAS_Y_BUILDS.md): probar en PC, Android e iOS, GitHub Actions |
-| Cada juego | `games/<juego>/README.md`: hitos sugeridos |
+| Cada juego | `games/<juego>/README.md`: cómo está hecho y retos para mejorarlo |
 
-## Estado actual
+## Limitaciones conocidas
 
-Esto es una **demo**: el menú, las puntuaciones, los ajustes y el sistema de juegos funcionan.
-Los tres juegos (`flappy`, `snake`, `mario`) son pantallas provisionales con botones de prueba;
-la carpeta `games/_template` incluye un juego real mínimo («Toca el círculo») como modelo.
-
-Limitaciones conocidas: la app es solo vertical por ahora, sin sonido todavía (los ajustes ya se
-guardan para que los juegos los lean) y sin manejo del «notch» en iPhone.
+- La app es **solo vertical** por ahora.
+- No se maneja el área segura del «notch» en iPhone (la barra superior podría quedar bajo la cámara).
+- Los juegos se probaron a fondo en el PC (50 pruebas y bots que los juegan completos). Cómo se
+  siente en cada teléfono (rendimiento, toque, sonido y vibración) conviene validarlo en un dispositivo real.
+- iOS compila en CI pero no se ha ejecutado en un dispositivo (hace falta un Mac).
