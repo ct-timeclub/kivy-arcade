@@ -45,7 +45,8 @@ jobs:
       # kivy-ios compila Python y Kivy para iOS DENTRO de la carpeta donde se ejecuta
       # (crea build/ y dist/). Esto es lo más lento, por eso se guarda en caché.
       - name: Caché de la toolchain de kivy-ios
-        uses: actions/cache@v4
+        id: toolchain-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ios-toolchain/build
@@ -57,6 +58,17 @@ jobs:
       - name: Compilar Python y Kivy para iOS (dispositivo + simulador)
         working-directory: ios-toolchain
         run: toolchain build python3 kivy
+
+      # Se guarda AQUÍ (y no al final del job) para que, si un paso posterior falla,
+      # el reintento no tenga que recompilar Python y Kivy (~18 min).
+      - name: Guardar caché de la toolchain
+        if: steps.toolchain-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ios-toolchain/build
+            ios-toolchain/dist
+          key: kivy-ios-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('requirements.txt') }}
 
       - name: Preparar carpeta de la app
         run: |
@@ -79,6 +91,7 @@ jobs:
           echo "Proyecto: $PROJ  Esquema: $SCHEME"
           xcodebuild -project "$PROJ" -scheme "$SCHEME" -configuration Debug \
             -sdk iphonesimulator -derivedDataPath build/xcode-sim \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO EXCLUDED_ARCHS=x86_64 \
             CODE_SIGNING_ALLOWED=NO build
 
       - name: Compilar para iPhone (sin firmar) y empaquetar .ipa
